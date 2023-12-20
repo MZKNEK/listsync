@@ -24,6 +24,7 @@ class WalkMatchAndGenerate
     public async Task RunAsync()
     {
         var output = new StringBuilder();
+        var log404 = new StringBuilder();
         long matched = 0;
 
         while(_walker.CanWalk())
@@ -79,6 +80,15 @@ class WalkMatchAndGenerate
 
                     if (shindenTitles.Count == 0)
                     {
+                        if (title.Media.Format == MediaFormat.Music)
+                            continue;
+
+                        if (_args.TrustGuesses)
+                        {
+                            log404.AppendLine(title.Media.Url.ToString());
+                            continue;
+                        }
+
                         Console.WriteLine("Match not found, press enter to continue...");
                         Console.ReadLine();
                         continue;
@@ -97,6 +107,15 @@ class WalkMatchAndGenerate
                         }
                     }
 
+                    if (title.Media.Format == MediaFormat.Music)
+                        continue;
+
+                    if (prob is null && _args.TrustGuesses && shindenTitles.Count > 30)
+                    {
+                        log404.AppendLine(title.Media.Url.ToString());
+                        continue;
+                    }
+
                     for (int i = 0; i < shindenTitles.Count; i++)
                     {
                         if (prob is not null && prob.Id == shindenTitles[i].Id)
@@ -106,47 +125,73 @@ class WalkMatchAndGenerate
                         Console.WriteLine($"Url: https://shinden.pl/t/{shindenTitles[i].Id}\n");
                     }
 
-                    Console.WriteLine($"[{shindenTitles.Count + 1}] Skip...\n");
-                    Console.WriteLine($"[{shindenTitles.Count + 2}] Manual...\n");
-                    Console.WriteLine($"[{shindenTitles.Count + 3}] Ignore...\n");
+                    Console.WriteLine($"[S] Skip");
+                    Console.WriteLine($"[M] Manual");
+                    Console.WriteLine($"[I] Ignore");
+                    if (prob is not null)
+                        Console.WriteLine($"[A] Auto");
                     Console.WriteLine("Select option:");
 
-                    int selected = -1;
-                    while (selected < 0 || selected > shindenTitles.Count + 3)
+                    int selected = 0;
+                    while (selected <= 0 || selected > shindenTitles.Count)
                     {
                         var userLine = Console.ReadLine();
-                        int.TryParse(userLine, out selected);
+                        if (!int.TryParse(userLine, out selected))
+                        {
+                            if (userLine == "s")
+                            {
+                                log404.AppendLine(title.Media.Url.ToString());
+                                break;
+                            }
+
+                            if (userLine == "i")
+                            {
+                                _preMatched.IgnoreEntry(title.Media.Id);
+                                break;
+                            }
+
+                            if (userLine == "m")
+                            {
+                                Console.WriteLine("Shinden id:");
+                                bool ok = false;
+                                while (!ok)
+                                {
+                                    userLine = Console.ReadLine();
+                                    ok = long.TryParse(userLine, out shindenId);
+                                }
+
+                                matched++;
+                                AddEntryToOutput(output, shindenId, title);
+                                _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                                break;
+                            }
+
+                            if (userLine == "a" && prob is not null)
+                            {
+                                matched++;
+                                shindenId = (long)prob.Id;
+                                AddEntryToOutput(output, shindenId, title);
+                                _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                                break;
+                            }
+                        }
                     }
 
-                    if (selected == shindenTitles.Count + 1)
+                    if (selected == 0)
                         continue;
 
-                    if (selected == shindenTitles.Count + 2)
+                    if (selected > 0 && selected <= shindenTitles.Count)
                     {
-                        Console.WriteLine("Shinden id:");
-                        bool ok = false;
-                        while (!ok)
-                        {
-                            var userLine = Console.ReadLine();
-                            ok = long.TryParse(userLine, out shindenId);
-                        }
-
                         matched++;
+                        shindenId = (long) shindenTitles[selected - 1].Id;
                         AddEntryToOutput(output, shindenId, title);
                         _preMatched.AddMatchedId(title.Media.Id, shindenId);
-                        continue;
                     }
-
-                    if (selected == shindenTitles.Count + 3)
+                    else
                     {
-                        _preMatched.IgnoreEntry(title.Media.Id);
-                        continue;
+                        Console.WriteLine($"Index out of range: {selected - 1}, press any key to continue...");
+                        Console.ReadLine();
                     }
-
-                    matched++;
-                    shindenId = (long) shindenTitles[selected - 1].Id;
-                    AddEntryToOutput(output, shindenId, title);
-                    _preMatched.AddMatchedId(title.Media.Id, shindenId);
                 }
             }
 
@@ -156,15 +201,20 @@ class WalkMatchAndGenerate
 
         if (!_args.OutputPath.Exists) _args.OutputPath.Create();
         File.WriteAllText($"{_args.OutputPath.FullName}\\{_args.Type}mlist", output.ToString());
+
+        if (log404.Length > 0)
+        {
+            File.WriteAllText($"{_args.OutputPath.FullName}\\{_args.Type}skip", log404.ToString());
+        }
     }
 
     internal static bool TitleMatchesExacly(string shindenTitle, MediaEntry title)
     {
         shindenTitle = shindenTitle.Trim();
-        if (title.Media.Title.RomajiTitle.Equals(shindenTitle, StringComparison.InvariantCultureIgnoreCase))
+        if (title.Media.Title.RomajiTitle is not null && title.Media.Title.RomajiTitle.Equals(shindenTitle, StringComparison.InvariantCultureIgnoreCase))
             return true;
 
-        if (title.Media.Title.NativeTitle.Equals(shindenTitle, StringComparison.InvariantCultureIgnoreCase))
+        if (title.Media.Title.NativeTitle is not null && title.Media.Title.NativeTitle.Equals(shindenTitle, StringComparison.InvariantCultureIgnoreCase))
             return true;
 
         if (title.Media.Title.EnglishTitle is not null && title.Media.Title.EnglishTitle.Equals(shindenTitle, StringComparison.InvariantCultureIgnoreCase))

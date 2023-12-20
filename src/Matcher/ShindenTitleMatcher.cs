@@ -64,8 +64,45 @@ class ShindenTitleMatcher
         {
             var startDate = res.Body.StartDate.Date;
             var aniStartDate = title.Media.StartDate;
-            return startDate.Day == aniStartDate.Day && startDate.Month == aniStartDate.Month && startDate.Year == aniStartDate.Year;
+            bool sameDate = startDate.Day == aniStartDate.Day && startDate.Month == aniStartDate.Month && startDate.Year == aniStartDate.Year;
+            return sameDate || (SameTypeAndEpisodesCnt(res.Body, title) && startDate.Year == aniStartDate.Year);
         }
+        return false;
+    }
+
+    internal bool SameTypeAndEpisodesCnt(ITitleInfo info, MediaEntry title)
+    {
+        if (info is IAnimeTitleInfo anime)
+        {
+            bool sameEpisodesCnt = anime.EpisodesCount == (ulong) (title.Media.Episodes ?? 0);
+            return sameEpisodesCnt && SameAnimeType(anime.Type, title.Media.Format ?? MediaFormat.Manga);
+        }
+        return false;
+    }
+
+    internal bool SameAnimeType(AnimeType type, MediaFormat format)
+    {
+        if (type == AnimeType.Tv && format == MediaFormat.TV)
+            return true;
+
+        if (type == AnimeType.Movie && format == MediaFormat.Movie)
+            return true;
+
+        if (type == AnimeType.Ona && format == MediaFormat.ONA)
+            return true;
+
+        if (type == AnimeType.Ova && format == MediaFormat.OVA)
+            return true;
+
+        if (type == AnimeType.Special && format == MediaFormat.Special)
+            return true;
+
+        if (type == AnimeType.Music && format == MediaFormat.Music)
+            return true;
+
+        if (type == AnimeType.Tv && format == MediaFormat.TVShort)
+            return true;
+
         return false;
     }
 
