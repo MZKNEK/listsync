@@ -91,7 +91,7 @@ class ShindenTitleMatcher
         if (list.Count == 0)
         {
             var spacedTitle = entry.Media.Title.PreferredTitle.Split(" ");
-            while (list.Count == 0 || spacedTitle.Length > 1)
+            while (list.Count == 0 && spacedTitle.Length > 1)
             {
                 spacedTitle = spacedTitle[..^1];
                 res = await _client.Search.QuickSearchAsync(string.Join(" ", spacedTitle), type).ConfigureAwait(false);

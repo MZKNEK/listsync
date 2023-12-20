@@ -48,13 +48,28 @@ class WalkMatchAndGenerate
 
                     var shindenTitles = await _finder.FindMatchAsync(title);
                     shindenTitles = _preMatched.FilterShindenEntries(shindenTitles);
-                    if (shindenTitles.Count == 1 && TitleMatchesExacly(shindenTitles[0].Title, title))
+                    if (shindenTitles.Count == 1)
                     {
-                        matched++;
-                        shindenId = (long) shindenTitles[0].Id;
-                        AddEntryToOutput(output, shindenId, title);
-                        _preMatched.AddMatchedId(title.Media.Id, shindenId);
-                        continue;
+                        if (TitleMatchesExacly(shindenTitles[0].Title, title))
+                        {
+                            matched++;
+                            shindenId = (long)shindenTitles[0].Id;
+                            AddEntryToOutput(output, shindenId, title);
+                            _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                            continue;
+                        }
+                        else
+                        {
+                            if (await _finder.VerifyGuessAsync(shindenTitles[0], title))
+                            {
+                                matched++;
+                                shindenId = (long)shindenTitles[0].Id;
+                                AddEntryToOutput(output, shindenId, title);
+                                _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                                continue;
+                            }
+                        }
+
                     }
 
                     Console.Clear();
