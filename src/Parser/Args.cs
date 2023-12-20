@@ -13,6 +13,7 @@ public class Args : ArgsHelper<Args>
     public Mode WorkMode;
     public MediaType Type;
     public string Marmolade;
+    public string Connection;
     public bool TrustGuesses;
     public string ShindenCreds;
     public DirectoryInfo OutputPath;
@@ -26,6 +27,7 @@ public class Args : ArgsHelper<Args>
         ApiKey = "";
         UserId = -1;
         Marmolade = "";
+        Connection = "";
         ShindenCreds = "";
         WorkMode = Mode.Walk;
         TrustGuesses = false;
@@ -46,6 +48,7 @@ public class Args : ArgsHelper<Args>
         ShindenCreds = o.ShindenCreds;
         TrustGuesses = o.TrustGuesses;
         OutputPath = o.OutputPath;
+        Connection = o.Connection;
         Marmolade = o.Marmolade;
         WorkMode = o.WorkMode;
         UserId = o.UserId;
@@ -138,5 +141,12 @@ public class Args : ArgsHelper<Args>
                 },
             "marmolade?",
             name: 'p',
+            needNextArgument: true))
+            .AddOption(new((arg, nextArg) =>
+                {
+                    arg.Connection = nextArg;
+                },
+            "connection string",
+            name: 'c',
             needNextArgument: true));
 }
