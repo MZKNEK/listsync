@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace ListSync.Modules;
 
 class DbFetcher
@@ -29,6 +31,12 @@ class DbFetcher
             }
         }
         await db.SaveChangesAsync();
+    }
+
+    public async Task<List<Database.AniShinRelation>> DownloadAsync()
+    {
+        using var db = new Database.Dbc(_conn);
+        return await db.AnimeRelation.ToListAsync();
     }
 
     internal static Database.AniShinRelation ToAniShin(long aniid, long shinid)

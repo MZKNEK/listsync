@@ -27,7 +27,9 @@ class Dbc : DbContext
             e.HasKey(v => v.Id);
             e.HasIndex(v => v.AnilistId).IsUnique();
             e.HasIndex(v => v.ShindenId);
+            e.HasIndex(v => v.MyAnimeListId);
             e.HasIndex(v => v.IsVerified);
+            e.HasIndex(v => v.IsProposedChange);
             e.HasIndex(v => v.ChangeToShindenId);
             e.HasIndex(v => v.ChangeToAnilistId);
         });
