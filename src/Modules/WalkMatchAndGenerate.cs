@@ -9,16 +9,16 @@ class WalkMatchAndGenerate
 {
     private readonly Parser.Args _args;
     private readonly ListWalker.AniWalker _walker;
+    private readonly Matcher.IPreMached _preMatched;
     private readonly Matcher.ShindenTitleMatcher _finder;
-    private readonly Matcher.ShindenPreMatchedWithAni _preMatched;
 
-    public WalkMatchAndGenerate(Parser.Args arg)
+    public WalkMatchAndGenerate(Parser.Args arg, Matcher.IPreMached preMached)
     {
         _args = arg;
 
+        _preMatched = preMached;
         _walker = new ListWalker.AniWalker(new AniClient(), _args.Type, _args.UserId);
         _finder = new Matcher.ShindenTitleMatcher(new ShindenClient(new Auth(_args.ApiKey, "ListSync")));
-        _preMatched = new Matcher.ShindenPreMatchedWithAni(_args.CustomMatchesPath);
     }
 
     public async Task RunAsync()
@@ -36,11 +36,11 @@ class WalkMatchAndGenerate
             {
                 foreach(var title in list.Entries)
                 {
-                    var shindenId = _preMatched.GetShindenId(title.Media.Id);
-                    if (shindenId == Matcher.ShindenPreMatchedWithAni.kIgnored)
+                    var shindenId = await _preMatched.GetShindenIdAsync(title.Media.Id);
+                    if (shindenId == Matcher.IPreMached.kIgnored)
                         continue;
 
-                    if (shindenId != Matcher.ShindenPreMatchedWithAni.kNotFound)
+                    if (shindenId != Matcher.IPreMached.kNotFound)
                     {
                         matched++;
                         AddEntryToOutput(output, shindenId, title);
@@ -48,7 +48,7 @@ class WalkMatchAndGenerate
                     }
 
                     var shindenTitles = await _finder.FindMatchAsync(title);
-                    shindenTitles = _preMatched.FilterShindenEntries(shindenTitles);
+                    shindenTitles = await _preMatched.FilterShindenEntriesAsync(shindenTitles);
                     if (shindenTitles.Count == 1)
                     {
                         if (TitleMatchesExacly(shindenTitles[0].Title, title))
@@ -56,7 +56,7 @@ class WalkMatchAndGenerate
                             matched++;
                             shindenId = (long)shindenTitles[0].Id;
                             AddEntryToOutput(output, shindenId, title);
-                            _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                            await _preMatched.AddMatchedIdAsync(title.Media.Id, shindenId);
                             continue;
                         }
                         else
@@ -66,7 +66,7 @@ class WalkMatchAndGenerate
                                 matched++;
                                 shindenId = (long)shindenTitles[0].Id;
                                 AddEntryToOutput(output, shindenId, title);
-                                _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                                await _preMatched.AddMatchedIdAsync(title.Media.Id, shindenId);
                                 continue;
                             }
                         }
@@ -102,7 +102,7 @@ class WalkMatchAndGenerate
                             matched++;
                             shindenId = (long)prob.Id;
                             AddEntryToOutput(output, shindenId, title);
-                            _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                            await _preMatched.AddMatchedIdAsync(title.Media.Id, shindenId);
                             continue;
                         }
                     }
@@ -146,7 +146,7 @@ class WalkMatchAndGenerate
 
                             if (userLine == "i")
                             {
-                                _preMatched.IgnoreEntry(title.Media.Id);
+                                await _preMatched.IgnoreEntryAsync(title.Media.Id);
                                 break;
                             }
 
@@ -162,7 +162,7 @@ class WalkMatchAndGenerate
 
                                 matched++;
                                 AddEntryToOutput(output, shindenId, title);
-                                _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                                await _preMatched.AddMatchedIdAsync(title.Media.Id, shindenId);
                                 break;
                             }
 
@@ -171,7 +171,7 @@ class WalkMatchAndGenerate
                                 matched++;
                                 shindenId = (long)prob.Id;
                                 AddEntryToOutput(output, shindenId, title);
-                                _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                                await _preMatched.AddMatchedIdAsync(title.Media.Id, shindenId);
                                 break;
                             }
                         }
@@ -185,7 +185,7 @@ class WalkMatchAndGenerate
                         matched++;
                         shindenId = (long) shindenTitles[selected - 1].Id;
                         AddEntryToOutput(output, shindenId, title);
-                        _preMatched.AddMatchedId(title.Media.Id, shindenId);
+                        await _preMatched.AddMatchedIdAsync(title.Media.Id, shindenId);
                     }
                     else
                     {

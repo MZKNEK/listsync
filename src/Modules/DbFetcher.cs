@@ -4,24 +4,22 @@ namespace ListSync.Modules;
 
 class DbFetcher
 {
-    private readonly FileInfo? _file;
     private readonly string _conn;
 
-    public DbFetcher(FileInfo? filePath, string connection)
+    public DbFetcher(string connection)
     {
         _conn = connection;
-        _file = filePath;
-
-        if (_file is null || _file.Directory is null)
-            throw new Exception("No file!");
-
-        if (!_file.Exists) _file.Create();
     }
 
-    public async Task UploadAsync()
+    public async Task UploadFromFileAsync(FileInfo? filePath)
     {
+        if (filePath is null || filePath.Directory is null)
+            throw new Exception("No file!");
+
+        if (!filePath.Exists) filePath.Create();
+
         using var db = new Database.Dbc(_conn);
-        foreach (var line in File.ReadAllLines(_file!.FullName))
+        foreach (var line in File.ReadAllLines(filePath!.FullName))
         {
             var elements = line.Split(':');
             if (elements.Length == 2 && long.TryParse(elements[0], out var aniid)
@@ -37,6 +35,13 @@ class DbFetcher
     {
         using var db = new Database.Dbc(_conn);
         return await db.AnimeRelation.ToListAsync();
+    }
+
+    public async Task AddNewRelationAsync(Database.AniShinRelation rel)
+    {
+        using var db = new Database.Dbc(_conn);
+        await db.AnimeRelation.AddAsync(rel);
+        await db.SaveChangesAsync();
     }
 
     internal static Database.AniShinRelation ToAniShin(long aniid, long shinid)

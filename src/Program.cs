@@ -33,16 +33,27 @@ public class ListSync
 
         if (arg.WorkMode == Parser.Args.Mode.Walk)
         {
-            var walker = new WalkMatchAndGenerate(arg);
+            Matcher.IPreMached? preMached = null;
+            if (arg.CustomMatchesPath is not null)
+            {
+                preMached = new Matcher.ShindenPreMatchedWithAni(arg.CustomMatchesPath);
+            }
+            else if (!string.IsNullOrEmpty(arg.Connection))
+            {
+                preMached = new Matcher.ShindenDbRelation(arg);
+            }
+
+            var walker = new WalkMatchAndGenerate(arg, preMached ?? throw new Exception("Premacher is null!"));
             await walker.RunAsync();
-            return;
         }
 
         if (arg.WorkMode == Parser.Args.Mode.Update)
         {
             var updater = new UpdateShindenList(arg);
             await updater.RunAsync();
-            return;
         }
+
+        Console.WriteLine("Finished! Press enter to exit.");
+        Console.ReadLine();
     }
 }

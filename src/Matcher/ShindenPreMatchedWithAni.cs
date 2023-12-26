@@ -1,12 +1,9 @@
 namespace ListSync.Matcher;
 
-class ShindenPreMatchedWithAni
+class ShindenPreMatchedWithAni : IPreMached
 {
     private readonly Dictionary<long, long> _dic;
     private readonly FileInfo? _file;
-
-    public static int kNotFound = -1;
-    public static int kIgnored = -2;
 
     public ShindenPreMatchedWithAni(FileInfo? filePath)
     {
@@ -28,23 +25,23 @@ class ShindenPreMatchedWithAni
         }
     }
 
-    public List<Shinden.Models.IQuickSearch> FilterShindenEntries(List<Shinden.Models.IQuickSearch> entries)
+    public Task<List<Shinden.Models.IQuickSearch>> FilterShindenEntriesAsync(List<Shinden.Models.IQuickSearch> entries)
     {
-        return entries.Where(x => _dic.All(c => c.Value != (long) x.Id)).ToList();
+        return Task.FromResult(entries.Where(x => _dic.All(c => c.Value != (long) x.Id)).ToList());
     }
 
-    public long GetShindenId(long anilistId)
+    public Task<long> GetShindenIdAsync(long anilistId)
     {
         if (_dic.TryGetValue(anilistId, out var shindenId))
         {
-            return shindenId;
+            return Task.FromResult(shindenId);
         }
-        return kNotFound;
+        return Task.FromResult(IPreMached.kNotFound);
     }
 
-    public void IgnoreEntry(long anilistId) => AddMatchedId(anilistId, kIgnored);
+    public Task IgnoreEntryAsync(long anilistId) => AddMatchedIdAsync(anilistId, IPreMached.kIgnored);
 
-    public void AddMatchedId(long anilistId, long shindenId)
+    public Task AddMatchedIdAsync(long anilistId, long shindenId, long malId = 0)
     {
         _dic.Add(anilistId, shindenId);
         if (_file is not null && _file.Exists)
@@ -54,5 +51,6 @@ class ShindenPreMatchedWithAni
                 stream.WriteLine($"{anilistId}:{shindenId}");
             }
         }
+        return Task.CompletedTask;
     }
 }
